@@ -84,7 +84,20 @@ class Command:
         else:
             count = 0
             for i in Funds:
-                print(str(count) + " " + i.name + " 总投入:" + str(i.put) + "元 当前持有:" + str(i.last) + "元")
+                print(
+                    str(count) +
+                    " " +
+                    i.name +
+                    " 总投入:" +
+                    str(i.put) +
+                    "元 当前持有:" +
+                    str(i.last) +
+                    "元 利润:" +
+                    str(i.last-i.put) +
+                    "元 收益率:" +
+                    (str((i.last-i.put)/i.put*100) if i.put!=0 else "0") +
+                    "%"
+                    )
                 count += 1
 
     @staticmethod
