@@ -86,17 +86,19 @@ class Fund:
     def get_fund_date_net_value(self, date: datetime.date):
         return self.info.loc[self.info[self.info['净值日期'] == date].index, ['单位净值']].iloc[0, 0]
 
-    def calc_day_money_info(self):
-        self.day_money_info.clear()
+    def calc_day_money_info(self, d):
+        # TODO 初始化d当天
         i = [
-            self.start_date,
+            self.start_date,  # d当天
+            (self.control_info[0][1] if len(self.control_info) > 0 else 0),#
             (self.control_info[0][1] if len(self.control_info) > 0 else 0),
-            (self.control_info[0][1] if len(self.control_info) > 0 else 0),
-            0, 0, 0
+            0,
+            0,
+            0
         ]
-        self.day_money_info.append(i)
-        
-       ''' for i in range(1, len(self.info) - self.info[self.info['净值日期'] == self.start_date].index):
+
+
+'''         for i in range(1, len(self.info) - self.info[self.info['净值日期'] == self.start_date].index):
             today = self.info.loc[self.info[self.info['净值日期'] == self.start_date].index + i, ['净值日期']].iloc[
                 0, 0]
             if self.get_date_control_money(today) > 0:
@@ -192,7 +194,7 @@ class Command:
                 Funds[selected_fund_id].info[Funds[selected_fund_id].info['净值日期'] == date].index, ['单位净值']
             ].iloc[0, 0]
         except Exception as e:
-            print("输入的日期不合法，原因是:"+e)
+            print("输入的日期不合法，原因是:" + e)
             return
 
         money = float(input("请输入投资的金额(买入为正，卖出为负，按照购买日期当日净值计算)"))
