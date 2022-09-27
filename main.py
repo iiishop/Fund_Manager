@@ -60,15 +60,16 @@ class Fund:
     fare = 0.0
     put = 0.0
     last = 0.0
+
     # TODO 卖出手续费
-    under_seven_money = []
-    under_thirty_money = []
-    under_one_hundred_eighty_money = []
-    no_fare_money = []
+    under_seven_money = 0.0
+    under_thirty_money = 0.0
+    under_one_hundred_eighty_money = 0.0
+    no_fare_money = 0.0
 
     code = ""
-    control_info = []
-    day_money_info = []
+    control_info = []  # 每天的操作信息
+    day_money_info = []  # 每天的结算信息
     start_date = datetime.date.today()
 
     def __init__(self, fund_code):
@@ -78,6 +79,10 @@ class Fund:
         self.code = fund_code
 
     def get_date_control_money(self, date: datetime.date):
+        """
+        :param date: 需要查询的日期
+        :return: 返回当天的操作金额
+        """
         for i in self.control_info:
             if i[0] == date:
                 return i[1]
@@ -86,41 +91,112 @@ class Fund:
     def get_fund_date_net_value(self, date: datetime.date):
         return self.info.loc[self.info[self.info['净值日期'] == date].index, ['单位净值']].iloc[0, 0]
 
-    def calc_day_money_info(self, d):
+    def calc_day_money_info(self, d: datetime.date):
         # TODO 初始化d当天
         i = [
-            self.start_date,  # d当天
-            (self.control_info[0][1] if len(self.control_info) > 0 else 0),#
-            (self.control_info[0][1] if len(self.control_info) > 0 else 0),
-            0,
-            0,
-            0
+            d,  # d当天
+            (self.control_info[0][1] if len(self.control_info) > 0 else 0),  # 当天的投入金额
+            (self.control_info[0][1] if len(self.control_info) > 0 else 0),  # 当天的结算金额
+            0,  # 当天的收益
+            0,  # 当天的收益率
+            0  # 总收益
         ]
+        # 如果d小于start_date那么就清空day_money_info
+        if d < self.start_date:
+            self.day_money_info.clear()
+        # 如果d大于等于start_date那么就删除day_money_info中日期为date后面的所有数据
+        else:
+            for j in self.day_money_info:
+                if j[0] > d:
+                    self.day_money_info.remove(j)
+        self.day_money_info.append(i)
+        # 查找d在info中的行数
+        info_index = self.info[self.info['净值日期'] == d].index
 
-
-'''         for i in range(1, len(self.info) - self.info[self.info['净值日期'] == self.start_date].index):
-            today = self.info.loc[self.info[self.info['净值日期'] == self.start_date].index + i, ['净值日期']].iloc[
-                0, 0]
-            if self.get_date_control_money(today) > 0:
-                z = self.get_date_control_money(today) * self.fare/100
-            else:
-                # TODO 卖出手续费
-                pass
+        for t in range(len(self.info)-info_index[0]-1):
+            # 获取day_money_info的最后一天的结算金额
+            last_day_money_info = self.day_money_info[len(self.day_money_info) - 1][2]
+            # 获取day_money_info的最后一天的日期
+            last_day_money_info_date = self.day_money_info[len(self.day_money_info) - 1][0]
+            # 获取day_money_info的最后一天的净值
+            last_day_money_info_net_value = self.get_fund_date_net_value(last_day_money_info_date)
+            # 获取info中净值日期为last_day_money_info_date的下一行的净值日期
+            last_day_money_info_next_day_date = self.info.iloc[self.info[self.info['净值日期'] == last_day_money_info_date].index[0] + 1, 0]
+            # 获取day_money_info的最后一天的第二天的净值
+            last_day_money_info_next_day_net_value = self.get_fund_date_net_value(
+                last_day_money_info_next_day_date)
+            # 获取day_money_info的最后一天的第二天的投入金额
+            last_day_money_info_next_day_put_money = self.get_date_control_money(
+                last_day_money_info_next_day_date) + self.day_money_info[len(self.day_money_info) - 1][1]
+            # 计算day_money_info的最后一天的第二天的结算金额
+            last_day_money_info_next_day_money = last_day_money_info * last_day_money_info_next_day_net_value / last_day_money_info_net_value + self.get_date_control_money(
+                last_day_money_info_next_day_date)
+            # 计算day_money_info的最后一天的第二天的收益
+            last_day_money_info_next_day_profit = last_day_money_info_next_day_money - last_day_money_info
+            # 计算day_money_info的最后一天的第二天的收益率
+            last_day_money_info_next_day_profit_rate = last_day_money_info_next_day_profit / last_day_money_info_next_day_money
+            # 计算day_money_info的最后一天的第二天的总收益
+            last_day_money_info_next_day_total_profit = last_day_money_info_next_day_money - last_day_money_info_next_day_put_money
+            # 将day_money_info的最后一天的第二天的信息添加到day_money_info中
             self.day_money_info.append([
-                today,
-                self.day_money_info[i - 1][1] + self.get_date_control_money(today) - z,
-                self.day_money_info[i - 1][2] / self.get_fund_date_net_value(
-                    self.day_money_info[i - 1][0]) * self.get_fund_date_net_value(today),
-                self.day_money_info[i - 1][2] / self.get_fund_date_net_value(
-                    self.day_money_info[i - 1][0]) * self.get_fund_date_net_value(today) - self.day_money_info[i - 1][
-                    2],
-                self.info.loc[self.info[self.info['净值日期'] == today].index, ['日增长率']].iloc[0, 0],
-                self.day_money_info[i - 1][2] / self.get_fund_date_net_value(
-                    self.day_money_info[i - 1][0]) * self.get_fund_date_net_value(today) - self.day_money_info[i - 1][
-                    1] + self.get_date_control_money(today)
+                last_day_money_info_next_day_date,
+                last_day_money_info_next_day_put_money,
+                last_day_money_info_next_day_money,
+                last_day_money_info_next_day_profit,
+                last_day_money_info_next_day_profit_rate,
+                last_day_money_info_next_day_total_profit
             ])
-        self.put = self.day_money_info[len(self.day_money_info)-1][1]
-        self.last = self.day_money_info[len(self.day_money_info)-1][2]'''
+        self.put = self.day_money_info[len(self.day_money_info) - 1][1]
+        self.last = self.day_money_info[len(self.day_money_info) - 1][2]
+
+    def get_new_money(self, money):
+        """
+        获取收取手续费后的金额
+        :param money: 原始操作金额
+        :return: 收取手续费后的金额
+        """
+        new_money = money
+        if money > 0:
+            return money - money * self.fare
+        else:
+            if money <= self.no_fare_money:
+                return money
+            else:
+                money -= self.no_fare_money
+                new_money += self.no_fare_money
+            if money <= self.under_one_hundred_eighty_money:
+                return new_money + money * 1.005
+            else:
+                money -= self.under_one_hundred_eighty_money
+                new_money += self.under_one_hundred_eighty_money * 1.005
+            if money <= self.under_thirty_money:
+                return new_money + money * 1.0075
+            else:
+                money -= self.under_thirty_money
+                new_money += self.under_thirty_money * 1.0075
+            if money <= self.under_seven_money:
+                return new_money + money * 1.015
+
+    def add_new_control(self, date, money):
+        """
+        新增一天的操作
+        :param date: 操作日期
+        :param money: 操作金额
+        :return: 无
+        """
+        # TODO 计算对应date的手续费
+        # TODO 存储收取手续费之前的投入金额
+        money = self.get_new_money(money)
+        # TODO 判断卖出后金额是否为负数
+        self.control_info.append((date, money))
+        total_money = 0.0
+        for i in self.control_info:
+            if i[0] == date:
+                total_money += i[1]
+                self.control_info.remove(i)
+        self.control_info.append((date, total_money))
+        self.control_info.sort(key=lambda x: x[0])
+
 
 Funds = []
 
@@ -199,27 +275,37 @@ class Command:
 
         money = float(input("请输入投资的金额(买入为正，卖出为负，按照购买日期当日净值计算)"))
         if date < Funds[selected_fund_id].start_date:
+            # 新的买入日期在原先买入日期之前
             if money > 0:
                 Funds[selected_fund_id].start_date = date
-                Funds[selected_fund_id].control_info.append((date, money))
-                Funds[selected_fund_id].control_info.sort(key=lambda x: x[0])
-                Funds[selected_fund_id].calc_day_money_info()
+                Funds[selected_fund_id].add_new_control(date, money)
+                Funds[selected_fund_id].calc_day_money_info(date)
             else:
                 print("投资金额不合法(最早的投资金额应该大于0)")
                 return
         else:
             if Funds[selected_fund_id].day_money_info[(date - Funds[selected_fund_id].start_date).days][2] + money >= 0:
-                Funds[selected_fund_id].control_info.append((date, money))
-                Funds[selected_fund_id].control_info.sort(key=lambda x: x[0])
-                Funds[selected_fund_id].calc_day_money_info()
+                Funds[selected_fund_id].add_new_control(date, money)
+                Funds[selected_fund_id].calc_day_money_info(date)
             else:
                 print("投资金额不合法(任何一天的结算金额都应该大于0)")
                 return
 
+    @staticmethod
+    def view_fund():
+        global selected_fund_id
+        if selected_fund_id != -1:
+            print("当前选择的基金是 " + Funds[selected_fund_id].name)
+        else:
+            print("请先选择基金")
+            return
+        for i in Funds[selected_fund_id].day_money_info:
+            print("日期："+str(i[0])+" 当日总投入："+str(i[1])+ " 当日总持有："+str(i[2])+" 当日利润："+str(i[3])+" 当日收益率："+str(i[4]*100)+"%总收益："+str(i[5]))
+
 
 def cmd(command: str):
     if command == 'h' or command == 'help':
-        print("有如下命令：添加基金，列出添加的基金，操作基金，选择基金")
+        print("有如下命令：添加基金，列出添加的基金，操作基金，选择基金，查看基金")
     elif command == '列出添加的基金':
         Command.list_fund()
     elif command == '添加基金':
@@ -228,6 +314,8 @@ def cmd(command: str):
         Command.select_fund()
     elif command == '操作基金':
         Command.control_fund()
+    elif command == '查看基金':
+        Command.view_fund()
     else:
         print("请输入正确的命令，帮助提示请输入help或者h")
 
@@ -243,5 +331,7 @@ if __name__ == '__main__':
     while True:
         try:
             cmd(input('>>>'))
-        except:
-            pass
+        except Exception as e:
+            print("出现错误，原因是:" + str(e))
+
+
