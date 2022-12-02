@@ -266,12 +266,17 @@ class Command:
         dated = int(input("请输入投资日(dd)"))
         try:
             date = datetime.date(datey, datem, dated)
+        except Exception as e:
+            print("输入的日期不合法，原因是:" + str(e))
+            return
+        try:
             t = Funds[selected_fund_id].info.loc[
                 Funds[selected_fund_id].info[Funds[selected_fund_id].info['净值日期'] == date].index, ['单位净值']
             ].iloc[0, 0]
         except Exception as e:
-            print("输入的日期不合法，原因是:" + e)
+            print("查询错误，原因是:" + str(e))
             return
+
 
         money = float(input("请输入投资的金额(买入为正，卖出为负，按照购买日期当日净值计算)"))
         if date < Funds[selected_fund_id].start_date:
